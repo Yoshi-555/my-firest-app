@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>もちっこ育成ゲーム</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh; background: #f6efe6; color: #4a3f3a;
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    display: flex; justify-content: center; padding: 14px; user-select: none;
+  }
+  .device {
+    width: 100%; max-width: 380px; background: #fffaf3; border-radius: 28px;
+    box-shadow: 0 6px 24px rgba(120, 90, 60, 0.15); padding: 16px; border: 3px solid #f0d9c0;
+  }
+  .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; }
+  .name { font-size: 20px; font-weight: bold; word-break: break-all; }
+  .gen { font-size: 12px; color: #8a7a70; font-weight: normal; margin-left: 4px; }
+  .meta { font-size: 12px; color: #8a7a70; text-align: right; line-height: 1.5; white-space: nowrap; }
+  .room {
+    position: relative; height: 230px; border-radius: 18px; overflow: hidden;
+    background: linear-gradient(#e7f4ff 0%, #f3f9ff 60%, #e9dccb 60%, #e2d2bd 100%);
+    transition: filter 0.6s;
+  }
+  .room.night { filter: brightness(0.45) saturate(0.6); }
+  .glow {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 50% 65%, rgba(255, 236, 160, 0.95) 0%, rgba(255, 220, 240, 0.5) 35%, rgba(255,255,255,0) 70%);
+  }
+  .glow.on { animation: glow 2.6s ease-out 1; }
+  @keyframes glow { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+  .pet { position: absolute; left: 50%; bottom: 10px; width: 175px; height: 175px; transform: translateX(-50%); }
+  .pet svg { width: 100%; height: 100%; }
+  .bob { animation: bob 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+  .wobble { animation: wobble 2.2s ease-in-out infinite; transform-origin: 50% 90%; }
+  .still { animation: breathe 3.5s ease-in-out infinite; transform-origin: 50% 100%; }
+  .sway { animation: sway 2.8s ease-in-out infinite; transform-origin: 50% 100%; }
+  .hop { animation: hop 0.5s ease-out 2; transform-origin: 50% 100%; }
+  .munch { animation: munch 0.35s ease-in-out 3; transform-origin: 50% 100%; }
+  .shiver { animation: shiver 0.15s linear 8; }
+  .wiggle { animation: wiggle 0.4s ease-in-out 2; transform-origin: 50% 100%; }
+  @keyframes bob { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-6px) scaleY(1.03); } }
+  @keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+  @keyframes breathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(0.97); } }
+  @keyframes sway { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+  @keyframes hop { 0% { transform: translateY(0); } 40% { transform: translateY(-22px); } 100% { transform: translateY(0); } }
+  @keyframes munch { 0%,100% { transform: scale(1,1); } 25% { transform: scale(1.06,0.92); } 50% { transform: scale(0.96,1.04); } 75% { transform: scale(1.05,0.94); } }
+  @keyframes shiver { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-7deg); } 70% { transform: rotate(7deg); } }
+  .poops { position: absolute; right: 14px; bottom: 10px; display: flex; gap: 4px; }
+  .bubble {
+    position: absolute; left: 12px; top: 12px; right: 12px; background: #fff; border-radius: 14px;
+    padding: 8px 12px; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); min-height: 36px;
+    transition: opacity 0.3s; z-index: 2;
+  }
+  .bubble:empty { opacity: 0; }
+  .bubble.important { background: #fff6d8; box-shadow: 0 0 0 2px #f2c063, 0 2px 6px rgba(0,0,0,0.08); font-weight: bold; }
+  .elder { animation: elder 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+  @keyframes elder { 0%,100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-3px) rotate(-1.5deg); } 70% { transform: translateY(-2px) rotate(1.5deg); } }
+  .nod { animation: nod 0.6s ease-in-out 2; transform-origin: 50% 100%; }
+  @keyframes nod { 0%,100% { transform: rotate(0); } 50% { transform: rotate(4deg) translateY(2px); } }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 14px 2px; }
+  .stat .lbl { font-size: 12px; color: #8a7a70; display: flex; justify-content: space-between; }
+  .bar { height: 10px; background: #f0e4d6; border-radius: 6px; overflow: hidden; margin-top: 3px; }
+  .bar i { display: block; height: 100%; border-radius: 6px; transition: width 0.4s; }
+  .life { font-size: 12px; color: #8a7a70; margin: -4px 2px 10px; }
+  .life .bar i { background: linear-gradient(90deg, #ffd6a8, #f0a8c8, #b8a8e8); }
+  .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  button {
+    font: inherit; color: #4a3f3a; background: #ffe9d2; border: 2px solid #f2cfa8; border-radius: 14px;
+    padding: 10px 4px; font-size: 14px; cursor: pointer;
+  }
+  button:active { transform: scale(0.96); }
+  button:disabled { opacity: 0.4; }
+  .actions button .ic { display: block; font-size: 20px; line-height: 1.2; }
+  .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 6px; }
+  .footer button { font-size: 12px; padding: 6px 8px; background: #f4ece2; border-color: #e5d6c4; white-space: nowrap; flex: 1; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(60, 40, 30, 0.45); display: flex;
+    align-items: center; justify-content: center; padding: 16px; z-index: 10;
+  }
+  .modal.hidden { display: none; }
+  .card { background: #fffaf3; border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; text-align: center; max-height: 92vh; overflow-y: auto; }
+  .card h2 { font-size: 18px; margin: 0 0 10px; }
+  .card p { font-size: 14px; color: #6a5a50; margin: 6px 0 14px; line-height: 1.6; }
+  .card input {
+    font: inherit; width: 100%; padding: 10px; border-radius: 12px; border: 2px solid #f2cfa8;
+    margin-bottom: 12px; text-align: center; font-size: 16px; background: #fff;
+  }
+  .row { display: flex; gap: 10px; justify-content: center; }
+  .row button { flex: 1; }
+  .big { font-size: 28px; padding: 14px; }
+  .zgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
+  .zcell {
+    background: #fff; border: 2px solid #f0e0cc; border-radius: 12px; padding: 4px 2px; cursor: pointer;
+    font-size: 10px; line-height: 1.3; min-height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .zcell svg { width: 52px; height: 52px; }
+  .zcell.unknown { color: #c8b8a8; font-size: 22px; background: #f7f1ea; }
+  .zcell.sel { border-color: #f0a868; }
+  .zstage { font-size: 12px; color: #8a7a70; text-align: left; margin-top: 10px; }
+  .zdetail { background: #fff; border-radius: 12px; padding: 10px; font-size: 13px; min-height: 52px; text-align: left; line-height: 1.6; }
+  .zdetail .sub { color: #8a7a70; }
+  .hist { text-align: left; font-size: 12px; color: #6a5a50; line-height: 1.7; margin-top: 10px; }
+  .travelPet { width: 150px; height: 150px; margin: 0 auto; }
+  .travelPet svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="top">
+    <div class="name"><span id="petName">もちっこ</span><span class="gen" id="genLbl"></span></div>
+    <div class="meta"><span id="stageLbl">たまご</span><br><span id="ageLbl">0分</span>・<span id="weightLbl">10g</span></div>
+  </div>
+  <div class="room" id="room">
+    <div class="glow" id="glow"></div>
+    <div class="bubble" id="bubble"></div>
+    <div class="pet"><div id="petWrap" class="bob"></div></div>
+    <div class="poops" id="poops"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="lbl"><span>おなか</span><span id="vHunger"></span></div><div class="bar"><i id="bHunger" style="background:#ffb36b"></i></div></div>
+    <div class="stat"><div class="lbl"><span>ごきげん</span><span id="vHappy"></span></div><div class="bar"><i id="bHappy" style="background:#ff8fab"></i></div></div>
+    <div class="stat"><div class="lbl"><span>げんき</span><span id="vEnergy"></span></div><div class="bar"><i id="bEnergy" style="background:#7cc6a4"></i></div></div>
+    <div class="stat"><div class="lbl"><span>きれい</span><span id="vClean"></span></div><div class="bar"><i id="bClean" style="background:#8fb8ff"></i></div></div>
+  </div>
+  <div class="life"><div style="display:flex;justify-content:space-between"><span>たびだちまで</span><span id="lifeLbl"></span></div><div class="bar"><i id="bLife"></i></div></div>
+  <div class="actions">
+    <button data-act="feed"><span class="ic">🍙</span>ごはん</button>
+    <button data-act="snack"><span class="ic">🍡</span>おやつ</button>
+    <button data-act="play"><span class="ic">🎈</span>あそぶ</button>
+    <button data-act="sleep" id="sleepBtn"><span class="ic">💡</span><span id="sleepLbl">でんき</span></button>
+    <button data-act="clean"><span class="ic">🧹</span>そうじ</button>
+    <button data-act="medicine"><span class="ic">💊</span>くすり</button>
+  </div>
+  <div class="footer">
+    <button id="speedBtn">⏩ 時間 ×1</button>
+    <button id="zukanBtn">📖 ずかん</button>
+    <button id="resetBtn">はじめから</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="nameModal">
+  <div class="card">
+    <h2 id="nameTitle">たまごを見つけた！</h2>
+    <p>なまえをつけてあげよう</p>
+    <input id="nameInput" maxlength="10" value="もちっこ">
+    <button id="nameOk" style="width:100%">きめた！</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="gameModal">
+  <div class="card">
+    <h2>どっちむくかな？</h2>
+    <p id="gameMsg">あてたらよろこぶよ（5かい）</p>
+    <div class="row">
+      <button class="big" data-dir="L">←</button>
+      <button class="big" data-dir="R">→</button>
+    </div>
+    <p id="gameScore" style="margin-top:12px">0 / 5</p>
+  </div>
+</div>
+
+<div class="modal hidden" id="confirmModal">
+  <div class="card">
+    <h2>はじめからやりなおす？</h2>
+    <p>いまの子とはおわかれになります（ずかんは消えません）</p>
+    <div class="row">
+      <button id="confirmNo">やめる</button>
+      <button id="confirmYes">やりなおす</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="zukanModal">
+  <div class="card">
+    <h2>もちっこずかん <span id="zCount" style="font-size:14px;color:#8a7a70"></span></h2>
+    <div id="zBody"></div>
+    <div class="zdetail" id="zDetail">マスをタップするとくわしく見られます</div>
+    <div class="hist" id="zHist"></div>
+    <button id="zClose" style="width:100%;margin-top:12px">とじる</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="travelModal">
+  <div class="card">
+    <h2>たびだちの日</h2>
+    <div class="travelPet" id="travelPet"></div>
+    <p id="travelMsg"></p>
+    <button id="travelOk" style="width:100%">あたらしいたまごをむかえる</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     ゲームエンジン（画面に依存しない部分）
+     時間経過・進化判定・お世話・セーブデータ検証をここにまとめています。
+     乱数は外から渡せるので、同じシードで同じ結果を再現してテストできます。
+     ============================================================ -->
+<script id="mochi-engine">
+const MochiEngine = (() => {
+  'use strict';
+
+  // 一生の区切り（ゲーム内の秒）
+  const STAGES = [
+    { id: 'egg',    name: 'たまご',     until: 60 },
+    { id: 'baby',   name: 'あかちゃん', until: 60 + 25 * 60 },   // あかちゃん期 約25分
+    { id: 'child',  name: 'こども',     until: 3 * 3600 },
+    { id: 'adult',  name: 'おとな',     until: 11 * 3600 },
+    { id: 'senior', name: 'ご長寿',     until: 17 * 3600 },
+  ];
+  const LIFE = 17 * 3600;
+
+  // 1秒あたりの変化（おとな・起きている・プレイ中の基準値）
+  const RATE = { hunger: 1 / 60, happy: 1 / 140, energyAwake: 1 / 120, energySleep: 1 / 12, poop: 1 / 1500 };
+  // 年代ごとの手のかかりかた
+  const MULT = {
+    baby:   { hunger: 1.5, happy: 1.3 },
+    child:  { hunger: 1.2, happy: 1.1 },
+    adult:  { hunger: 1.0, happy: 1.0 },
+    senior: { hunger: 0.9, happy: 1.0 },
+  };
+  // 留守中（ページを閉じている・裏にある間）のやさしいルール
+  const OFFLINE = {
+    decay: 0.6,      // 減り方は6割
+    floor: 30,       // おなか・ごきげんは30より下がらない（もともと低ければそのまま）
+    poopMax: 2,      // うんちは2個まで
+    weight: 0.25,    // 進化判定での重み（プレイ中の25%）
+    neutral: 48,     // 留守中のお世話評価は「ふつう」程度で頭打ち（上がりも下がりもしすぎない）
+    cap: 24 * 3600,  // 計算する留守時間の上限（現実の24時間）
+  };
+  const SPEEDS = [1, 20, 100];
+  // お世話の評価が有効な時間：どの速度でも「現実の時間で20分」。
+  // お世話のたびに残り時間（現実の秒）をセットし、プレイ中に実際に流れた現実時間だけ減らす。
+  // 速度を変えても残りはそのまま。留守中・ミニゲーム中は減らない。年代が変わるとリセット。
+  const CARE_REAL = 20 * 60;
+  const MIN_TOGETHER = 20 * 60;  // ルートが変わるには、こども期にいっしょに過ごした時間（ゲーム内）が20分以上必要
+  // 連打対策：同じ種類のお世話は、ゲーム内10分につき「1回ぶん」までしか育て方の傾向に数えない
+  const DEDUPE = 10 * 60;
+
+  // 進化のしきい値（シミュレーションで調整した値）
+  const TH = { puchi: 49, upToMaru: 84, upToPuchi: 66, downFromMaru: 50, downFromPuchi: 40 };
+
+  // ===== 20種類のキャラクター（名前・説明・育て方ヒント・絵の設定） =====
+  const FORMS = {
+    baby:    { st: 'baby',  name: 'あかもち', desc: 'うまれたばかり。たくさんお世話してあげよう', hint: 'たまごからうまれる', sh: { rx: 44, ry: 38, cy: 150 }, c: '#ffe1ea', s: '#f0b8c8' },
+    maru:    { st: 'child', name: 'まるもち', desc: 'たっぷりかわいがられた、まんまるな子', hint: 'あかちゃんのころ、ごはんをしっかりあげて大事に育てる', sh: { rx: 58, ry: 52, cy: 134 }, c: '#ffd0dd', s: '#eba7bb', acc: ['ears'] },
+    puchi:   { st: 'child', name: 'ぷちもち', desc: 'ちょっぴり小さめ。のびしろたっぷり', hint: 'あかちゃんのころ、たくさんあそぶ（またはほどほどにお世話する）', sh: { rx: 50, ry: 46, cy: 140 }, c: '#fff1b8', s: '#e8cf7a', acc: ['ahoge'] },
+    shobon:  { st: 'child', name: 'しょんぼりもち', desc: 'さみしがり。これからのお世話しだいで変われる', hint: 'あかちゃんのころ、あまりかまわない', sh: { rx: 56, ry: 44, cy: 142 }, c: '#d9dde8', s: '#a9b0c4', acc: ['droopEars'], f: { droopy: true } },
+    fuwa:    { st: 'adult', name: 'ふわもち', desc: 'やさしくてふわふわ。バランスよく育った', hint: 'まるもちを、ごはんをしっかりあげて、ていねいに育てる', sh: { rx: 70, ry: 64, cy: 122 }, c: '#fff0f6', s: '#f2bcd2', acc: ['sprout', 'arms'] },
+    kira:    { st: 'adult', name: 'きらもち', desc: 'みんなのあこがれ。キラキラかがやいている', hint: 'まるもちを大事にして、いっしょにたくさんあそぶ', sh: { rx: 66, ry: 62, cy: 124 }, c: '#fff7d1', s: '#f0d27a', acc: ['star', 'sparkles'] },
+    ama:     { st: 'adult', name: 'あまもち', desc: 'あまいものが大好き。いつもいいにおい', hint: 'まるもちに、おやつを多めにあげる', sh: { rx: 68, ry: 60, cy: 126 }, c: '#ffd6e8', s: '#f0a8c8', acc: ['cherry', 'sprinkles'] },
+    genki:   { st: 'adult', name: 'げんきもち', desc: 'いつも走りまわっている元気いっぱいの子', hint: 'ぷちもちと、たくさんあそぶ', sh: { rx: 66, ry: 60, cy: 126 }, c: '#ffe0c2', s: '#f0b48a', acc: ['headband', 'arms'] },
+    nonbiri: { st: 'adult', name: 'のんびりもち', desc: 'マイペースでおっとり。お花が好き', hint: 'ぷちもちを、よくねかせてのんびり育てる', sh: { rx: 70, ry: 56, cy: 130 }, c: '#e2f3d8', s: '#a9d39a', acc: ['flower'], f: { sleepy: true } },
+    manmaru: { st: 'adult', name: 'まんまるもち', desc: 'たべるのが大好き。まるまるとしている', hint: 'ぷちもちに、たくさんたべさせる', sh: { rx: 80, ry: 74, cy: 112 }, c: '#fff2e6', s: '#efc9a8', f: { bigCheek: true } },
+    gutara:  { st: 'adult', name: 'ぐうたらもち', desc: 'ねころがってばかり。でもにくめない', hint: 'しょんぼりもちを、あまりかまわずに（ねてばかりで）育てる', sh: { rx: 80, ry: 42, cy: 144 }, c: '#e3d6ee', s: '#bda9d1', f: { droopy: true } },
+    itazura: { st: 'adult', name: 'いたずらもち', desc: 'いたずら好き。ほんとうはかまってほしい', hint: 'しょんぼりもちと、たくさんあそぶ', sh: { rx: 62, ry: 58, cy: 128 }, c: '#d6c6ff', s: '#a690e8', acc: ['horns', 'tail'], f: { fang: true } },
+    wata:    { st: 'senior', name: 'わたもち', desc: 'まっしろなおひげの、ものしりなもち', hint: 'ふわもちなどが、おだやかに年をとると…', sh: { rx: 70, ry: 62, cy: 124 }, c: '#ffffff', s: '#d8d8d8', acc: ['brows', 'beard'] },
+    hoshi:   { st: 'senior', name: 'ほしもち', desc: 'あたまに光のわっか。みんなを見守っている', hint: 'きらもちなどが、とても大事にされて年をとると…', sh: { rx: 64, ry: 60, cy: 126 }, c: '#fffbe8', s: '#e8d58f', acc: ['halo', 'brows', 'sparkles'] },
+    kinako:  { st: 'senior', name: 'きなこもち', desc: 'あまいかおりの、やさしいおとしより', hint: 'あまもちなどが、おやつ好きのまま年をとると…', sh: { rx: 70, ry: 58, cy: 128 }, c: '#e9c98f', s: '#c9a466', acc: ['kinakoDots', 'brows'] },
+    tatsujin:{ st: 'senior', name: 'たつじんもち', desc: 'からだをきたえつづけた、もちの達人', hint: 'げんきもちなどが、あそび好きのまま年をとると…', sh: { rx: 66, ry: 60, cy: 126 }, c: '#ffe8d6', s: '#e0b79a', acc: ['headbandWhite', 'brows', 'mustache'] },
+    hinata:  { st: 'senior', name: 'ひなたもち', desc: 'ひなたぼっこでおちゃをのむのが日課', hint: 'のんびりもちなどが、よくねむって年をとると…', sh: { rx: 70, ry: 56, cy: 130 }, c: '#f0f8e4', s: '#b8d8a0', acc: ['glasses', 'tea', 'brows'] },
+    kagami:  { st: 'senior', name: 'かがみもち', desc: 'えんぎのいい二段がさね。みかんがじまん', hint: 'まんまるもちなどが、たくさん食べて年をとると…', sh: { stack: true }, c: '#fffdf6', s: '#e5dccb', acc: ['orange', 'brows'] },
+    nekoro:  { st: 'senior', name: 'ねころもち', desc: 'いちにちじゅう、まくらといっしょ', hint: 'ぐうたらもちなどが、ねてばかりで年をとると…', sh: { rx: 86, ry: 36, cy: 152 }, c: '#e6dcf0', s: '#bba8cf', acc: ['pillow', 'brows'], f: { sleepy: true } },
+    choiwaru:{ st: 'senior', name: 'ちょいワルもち', desc: 'サングラスがトレードマーク。じつはやさしい', hint: 'いたずらもちなどが、やんちゃなまま年をとると…', sh: { rx: 62, ry: 58, cy: 128 }, c: '#cbbcf5', s: '#9a86de', acc: ['sunglasses', 'cane'] },
+  };
+  const ORDER = Object.keys(FORMS);
+  const SENIOR_OF = { fuwa: 'wata', kira: 'hoshi', ama: 'kinako', genki: 'tatsujin', nonbiri: 'hinata', manmaru: 'kagami', gutara: 'nekoro', itazura: 'choiwaru' };
+  const TREE = { maru: ['fuwa', 'kira', 'ama'], puchi: ['nonbiri', 'genki', 'manmaru'], shobon: ['gutara', 'itazura'] };
+  // おとな → ご長寿の候補（先頭がいちばんなりやすい「本命」。ほかの3つにもなれる）
+  const SENIOR_PATHS = {
+    fuwa:    ['wata', 'hinata', 'hoshi', 'kinako'],
+    kira:    ['hoshi', 'tatsujin', 'wata', 'hinata'],
+    ama:     ['kinako', 'kagami', 'wata', 'hoshi'],
+    genki:   ['tatsujin', 'choiwaru', 'hoshi', 'kagami'],
+    nonbiri: ['hinata', 'nekoro', 'wata', 'kinako'],
+    manmaru: ['kagami', 'kinako', 'hinata', 'nekoro'],
+    gutara:  ['nekoro', 'hinata', 'kagami', 'choiwaru'],
+    itazura: ['choiwaru', 'tatsujin', 'nekoro', 'kinako'],
+  };
+  const STYLES = ['play', 'sweet', 'rest', 'heavy', 'cared', 'balanced'];
+
+  // ===== 小さな道具 =====
+  const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+  const clamp01 = v => clamp(v, 0, 1);
+  const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  function gauss(rng) { let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const stageAt = age => STAGES.find(s => age < s.until) || { id: 'end', name: 'たびだち' };
+  const stageOfForm = id => (FORMS[id] ? FORMS[id].st : null);
+  function cleanName(n) {
+    const s = (typeof n === 'string' ? n : '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 10);
+    return s || 'もちっこ';
+  }
+  const newSt = w => ({ t: 0, wq: 0, q: 0, neg: 0, feed: 0, snack: 0, play: 0, sleepT: 0, on: 0, hs: 0, ht: 0, w0: w || 10 });
+  const newLastAct = () => ({ feed: -1e9, snack: -1e9, play: -1e9 });
+  function fresh(name, gen, speed) {
+    return { v: 3, name: cleanName(name), gen: Math.max(1, Math.floor(num(gen, 1))), age: 0, last: Date.now(),
+             hunger: 80, happy: 80, energy: 100, poop: 0, sick: false, asleep: false, weight: 10,
+             form: null, childForm: null, adultX: null, departed: false, title: null,
+             speed: SPEEDS.includes(speed) ? speed : 1, lastSnack: -9999, careLeft: 0, lastAct: newLastAct(),
+             adultForm: null, style: null, awayGrew: false, wasAway: false, grace: 0, prevSt: null, st: newSt(10) };
+  }
+  const cleanVal = S => clamp(100 - S.poop * 30);
+  // お世話の行き届き具合（0〜100）。おなか・ごきげん・きれい・休息
+  const careIndex = S => 0.4 * S.hunger + 0.4 * S.happy + 0.1 * cleanVal(S) + 0.1 * Math.min(100, S.energy + 40);
+
+  // ===== 進化判定 =====
+  // 年代全体の「お世話の行き届き具合」。留守中は重みを下げ、放置の負担を差し引く。
+  // 小さな個体差（標準偏差4）を加え、境界で結果がガタッと変わらないようにする。
+  function stageScore(S, rng) {
+    const st = S.st;
+    const Q = st.wq > 0 ? st.q / st.wq : 70;
+    return Q - st.neg * 0.8 + gauss(rng) * 4;
+  }
+  // 育て方の個性（それぞれ0〜1）。ボタンの連打より「何を中心にお世話したか」の割合を見る。
+  function traits(S) {
+    // この年代の記録に、ひとつ前の年代の傾向を半分だけ足す（留守が長くても、その子らしさが残る）
+    const pv = S.prevSt || {}, st = S.st;
+    const feed = st.feed + 0.5 * (pv.feed || 0), snack = st.snack + 0.5 * (pv.snack || 0), play = st.play + 0.5 * (pv.play || 0);
+    const food = feed + snack, all = food + play;
+    return {
+      play:  all >= 3 ? play / all : 0,
+      sweet: food >= 3 ? snack / food : 0,
+      // たくさん食べたか：おなかをどれだけ満たしていたか ＋ 1時間あたりの体重の増え方
+      heavy: clamp01(0.5 * clamp01(((st.ht > 0 ? st.hs / st.ht : 60) - 65) / 25)
+                   + 0.5 * clamp01(((S.weight - st.w0) / Math.max(0.5, st.t / 3600) - 1.5) / 2)),
+      rest:  st.t > 0 ? clamp01((st.sleepT / st.t - 0.07) / 0.2) : 0,
+    };
+  }
+  const evidence = S => S.st.feed + S.st.snack + S.st.play;   // この年代のお世話の記録の量（連打は数えすぎない）
+  // 候補ごとの「なりやすさ」に小さな揺らぎを足して、いちばん高いものを選ぶ
+  // sigma: 個体差の大きさ。いっしょに過ごした時間が短いほど、その子の個性（個体差）が強く出る
+  function choose(cands, rng, sigma) {
+    let best = null, bv = -Infinity;
+    for (const k of Object.keys(cands)) { const v = cands[k] + gauss(rng) * sigma; if (v > bv) { bv = v; best = k; } }
+    return best;
+  }
+  // こども：お世話がほとんど届かなかったら しょんぼりもち。
+  // それ以外は「お世話の行き届き具合」と「ごはん中心か、あそび中心か」で まるもち / ぷちもち が分かれる。
+  function decideChild(S, rng) {
+    const X = stageScore(S, rng);
+    if (X < TH.puchi) return 'shobon';
+    const st = S.st, food = st.feed + st.snack, all = food + st.play;
+    const lean = all >= 1.5 ? food / all : 0.55;          // 1 = ごはん・おやつ中心、0 = あそび中心
+    const m = (X - 64) / 60 + 2.2 * (lean - 0.8) + gauss(rng) * 0.4;   // ごはん中心ほど まるもち、あそびが多いほど ぷちもち
+    return m > 0 ? 'maru' : 'puchi';
+  }
+  function decideAdult(S, rng) {
+    const X = stageScore(S, rng);
+    let base = TREE[S.childForm] ? S.childForm : 'puchi';
+    // こども期のお世話しだいで、上のルート・下のルートに移れる（取り返しがつく）。
+    // ただし、いっしょに過ごした時間が短いとき（留守が長かったとき）はルートを変えない。
+    if (S.st.on >= MIN_TOGETHER) {
+      const st = S.st, food = st.feed + st.snack, lean = (food + st.play) >= 1.5 ? food / (food + st.play) : 0.5;
+      if (base === 'puchi' && X >= TH.upToMaru && lean >= 0.75) base = 'maru';   // ごはん中心でとても大事にされたら まるもちルートへ
+      else if (base === 'shobon' && X >= TH.upToPuchi) base = 'puchi';
+      else if (base === 'maru' && X < TH.downFromMaru) base = 'puchi';
+      else if (base === 'puchi' && X < TH.downFromPuchi) base = 'shobon';
+    }
+    const t = traits(S);
+    let c;
+    // 傾向は「ふつう」との差で見る（なんでもまんべんなく押す人は、どれにも偏らない）
+    const P = t.play - 0.2, W = t.sweet - 0.3;
+    if (base === 'maru') c = { fuwa: 0.62, kira: 0.3 + 2.2 * P + Math.min(0.2, Math.max(0, (X - 72) / 60)), ama: 0.3 + 2.4 * W };
+    else if (base === 'puchi') c = { nonbiri: 0.45 + 1.1 * t.rest, genki: 0.3 + 2.0 * P, manmaru: 0.2 + 1.3 * t.heavy + 0.8 * W };
+    else c = { gutara: 0.5 + 0.8 * t.rest, itazura: 0.3 + 1.7 * P };
+    // お世話の記録が少ないほど（留守が長い・見守るだけ）、その子の個性（個体差）が強く出る
+    const sigma = 0.2 + 0.25 * (1 - clamp01(evidence(S) / 6));
+    return { form: choose(c, rng, sigma), X };
+  }
+  // ご長寿：おとな期の育て方で、4つの候補から決まる。
+  // 過去に同じ「おとな→ご長寿」の組み合わせが続いていたら少しなりにくくし、育て直しでも違う展開を楽しめるようにする。
+  function decideSenior(S, rng, memory) {
+    const X = stageScore(S, rng);
+    const t = traits(S), q = clamp01((X - 55) / 30);
+    const bal = 1 - Math.max(t.play, t.sweet, t.rest, t.heavy);
+    // 「ふつう」との差で見て、ひとつの傾向が強くききすぎないようにする
+    const cap = v => Math.max(-0.4, Math.min(0.5, v));
+    const aff = {
+      wata:     0.4 + 0.3 * bal,
+      hoshi:    0.15 + 0.7 * q,
+      kinako:   0.3 + cap(1.3 * (t.sweet - 0.3)),
+      tatsujin: 0.3 + cap(1.3 * (t.play - 0.2)),
+      hinata:   0.3 + cap(1.0 * (t.rest - 0.2)),
+      kagami:   0.3 + cap(0.8 * (t.heavy - 0.5)),
+      nekoro:   0.25 + cap(0.6 * (t.rest - 0.2)) + 0.35 * (1 - q),
+      choiwaru: 0.25 + cap(0.6 * (t.play - 0.2)) + 0.35 * (1 - q),
+    };
+    const paths = SENIOR_PATHS[S.form] || SENIOR_PATHS.fuwa;
+    const pairs = (memory && Array.isArray(memory.pairs)) ? memory.pairs.slice(0, 10) : [];
+    const seen = (memory && memory.seen) || {};
+    const c = {};
+    paths.forEach((id, i) => {
+      let v = aff[id] + (i === 0 ? 0.22 : 0);
+      const repeats = pairs.filter(p => p && p.adult === S.form && p.form === id).length;
+      v -= Math.min(0.36, 0.12 * repeats);            // 同じ組み合わせが続くと、少しなりにくい
+      if (!seen[id]) v += 0.05;                        // まだ会ったことのない子は、ほんの少しなりやすい
+      c[id] = v;
+    });
+    // その子の育てられ方（ご長寿のセリフに使う）
+    const style = q > 0.75 && bal > 0.45 ? 'cared'
+      : t.play >= 0.45 ? 'play' : t.sweet >= 0.45 ? 'sweet' : t.rest >= 0.5 ? 'rest' : t.heavy >= 0.6 ? 'heavy' : 'balanced';
+    return { form: choose(c, rng, 0.28 + 0.2 * (1 - clamp01(evidence(S) / 6))), style };
+  }
+
+  function transition(S, now, rng, ev, offline, memory) {
+    const from = S.form;
+    if (now === 'baby') S.form = 'baby';
+    else if (now === 'child') { S.form = decideChild(S, rng); S.childForm = S.form; }
+    else if (now === 'adult') { const r = decideAdult(S, rng); S.form = r.form; S.adultX = r.X; S.adultForm = r.form; }
+    else if (now === 'senior') { S.adultForm = S.form; const r = decideSenior(S, rng, memory); S.form = r.form; S.style = r.style; }
+    else if (now === 'end') {
+      const X = stageScore(S, rng);
+      const total = ((S.adultX == null ? 65 : S.adultX) + X) / 2;
+      S.title = total >= 68 ? 'しあわせいっぱいの' : total >= 52 ? 'おだやかな' : 'マイペースな';
+      S.departed = true; S.asleep = false; S.sick = false;
+      ev.push({ type: 'depart', title: S.title });
+      return;
+    }
+    S.prevSt = { feed: S.st.feed, snack: S.st.snack, play: S.st.play };
+    S.st = newSt(S.weight);
+    S.careLeft = 0;   // 年代が変わったら、新しい年代の評価は次のお世話から（前の年代のお世話を持ち越さない）
+    ev.push({ type: 'evolve', from, to: S.form, stage: now, offline });
+  }
+
+  // ===== 時間を進める =====
+  function stepOnce(S, dt, offline, rng, ev, realPerSim, noAge, memory) {
+    const prev = stageAt(S.age).id;
+    if (!noAge) S.age += dt;
+    if (prev !== 'egg') {
+      const m = MULT[prev] || MULT.adult;
+      const slow = S.asleep ? 0.4 : 1, off = offline ? OFFLINE.decay : 1;
+      // うんち・病気が重なっても、ごきげんの減りは最大1.6倍まで
+      const happyMul = Math.min(1.6, (S.poop > 0 ? 1.3 : 1) * (S.sick ? 1.4 : 1));
+      const h0 = S.hunger, p0 = S.happy;
+      let h = clamp(h0 - RATE.hunger * dt * slow * m.hunger * off);
+      let p = clamp(p0 - RATE.happy * dt * slow * m.happy * happyMul * off);
+      if (offline) { h = Math.max(h, Math.min(h0, OFFLINE.floor)); p = Math.max(p, Math.min(p0, OFFLINE.floor)); }
+      S.hunger = h; S.happy = p;
+      if (S.asleep) {
+        S.energy = clamp(S.energy + RATE.energySleep * dt);
+        if (!noAge) S.st.sleepT += dt;
+        if (S.energy >= 100) { S.asleep = false; ev.push({ type: 'wake', offline }); }
+      } else {
+        S.energy = clamp(S.energy - RATE.energyAwake * dt * (prev === 'senior' ? 1.3 : 1));
+        // 留守中は、つかれたら自分でおひるねする
+        if (S.energy <= (offline ? 20 : 0)) { S.asleep = true; ev.push({ type: 'fellAsleep', offline }); }
+        const cap = offline ? OFFLINE.poopMax : 4;
+        if (S.poop < cap && rng() < RATE.poop * dt * (prev === 'baby' ? 1.5 : 1)) { S.poop++; ev.push({ type: 'poop', offline }); }
+      }
+      if (!offline) {
+        // 放置の負担（プレイ中にほったらかした時間だけ数える）
+        if (S.hunger <= 5 || S.happy <= 5 || S.poop >= 3) S.st.neg += dt / 60;
+        if (!S.sick && S.age > S.grace) {   // 戻ってきてすぐは病気にならない（猶予）
+          const risk = (S.poop >= 3 ? 1 : 0) + (S.hunger <= 5 ? 1 : 0);   // うんち3個以上 or ぺこぺこのときだけ
+          if (risk && rng() < (dt / 2400) * risk) { S.sick = true; ev.push({ type: 'sick' }); }
+        }
+      }
+      // お世話の評価：最後にお世話してからしばらくの間だけ、実際の状態で評価する。
+      // 見ているだけ・留守中の時間は「ふつう」で頭打ちにする（放置で極端に悪くも良くもならない）
+      if (noAge) return;   // 成長を待っている間は、記録もしない
+      if (!offline) S.st.on += dt;
+      const w = offline ? OFFLINE.weight : 1;
+      const active = !offline && S.careLeft > 0;
+      const ci = careIndex(S);
+      S.st.q += (active ? ci : Math.min(ci, OFFLINE.neutral)) * dt * w;
+      if (active) { S.st.hs += S.hunger * dt; S.st.ht += dt; }
+      if (!offline) S.careLeft = Math.max(0, S.careLeft - dt * realPerSim);   // 現実時間で減らす
+      S.st.wq += dt * w;
+      S.st.t += dt;
+    }
+    const now = stageAt(S.age).id;
+    if (now !== prev) { transition(S, now, rng, ev, offline, memory); if (offline) S.awayGrew = true; }
+  }
+
+  // sec: 進めるゲーム内の秒数 / opt.offline: 留守中ルールで進めるか
+  // opt.real: そのあいだに流れた現実の秒数（プレイ中。省略時は等倍とみなす）
+  // opt.memory: 図鑑と育成履歴（ご長寿の進化で、同じ組み合わせばかりにならないように使う）
+  function advance(S, sec, opt) {
+    opt = opt || {};
+    const offline = !!opt.offline, rng = opt.rng || Math.random, ev = [];
+    if (S.departed || !(sec > 0)) return ev;
+    const step = offline ? 60 : 10;
+    const realPerSim = offline ? 0 : Math.max(0, num(opt.real, sec)) / sec;
+    if (!offline) {
+      S.awayGrew = false;                              // プレイヤーが戻ってきたら、また成長が進む
+      if (S.wasAway) S.grace = S.age + 15 * 60;        // 戻ってから15分（ゲーム内）は病気にならない
+    }
+    S.wasAway = offline;
+    let left = sec, guard = 0;
+    while (left > 1e-6 && !S.departed && guard++ < 100000) {
+      let dt = Math.min(step, left);
+      const cur = stageAt(S.age);
+      // 留守中に一度成長したら、その先はプレイヤーが戻るまで年をとらずに待つ
+      const noAge = offline && (S.awayGrew || S.age + dt > LIFE - 60);
+      if (!noAge && cur.id !== 'end') { const toB = cur.until - S.age; if (toB > 0 && dt > toB) dt = toB; }
+      stepOnce(S, dt, offline, rng, ev, realPerSim, noAge, opt.memory);
+      left -= dt;
+    }
+    return ev;
+  }
+
+  // ===== お世話 =====
+  function act(S, a) {
+    const r = actInner(S, a);
+    if (r.ok && r.key !== 'startPlay') S.careLeft = CARE_REAL;   // ここから現実時間20分、お世話の評価が有効
+    return r;
+  }
+  // 育て方の傾向として数える。同じ種類を短時間に何度押しても、ゲーム内10分で「1回ぶん」まで。
+  // eff: そのお世話が実際にどれだけ効いたか（0〜1）
+  function countAct(S, type, eff) {
+    if (!S.lastAct) S.lastAct = newLastAct();
+    const gap = S.age - num(S.lastAct[type], -1e9);
+    const w = clamp01(gap / DEDUPE);
+    S.st[type] += w * clamp01(eff);
+    S.lastAct[type] = S.age;   // 1分おきに押しても0.1回ぶんずつ → ゲーム内10分で1回ぶん
+  }
+  function actInner(S, a) {
+    const stage = stageAt(S.age).id;
+    if (stage === 'egg' || S.departed) return { ok: false };
+    if (S.asleep && a !== 'sleep') return { ok: false, key: 'sleepingNow' };
+    const st = S.st;
+    switch (a) {
+      case 'feed':
+        if (S.hunger >= 95) return { ok: false, key: 'full' };
+        { const h0 = S.hunger;
+          S.hunger = clamp(S.hunger + 30); S.happy = clamp(S.happy + 4); S.weight = clamp(S.weight + 1, 5, 99);
+          countAct(S, 'feed', (S.hunger - h0) / 30); }
+        return { ok: true, key: 'feed', anim: 'munch' };
+      case 'snack': {
+        const again = S.age - S.lastSnack < 120;   // 2分以内の連続おやつは喜びが小さい
+        // 続けて食べたおやつは、喜びも体重の増え方も小さい（連打で体重だけが増えないように）
+        S.happy = clamp(S.happy + (again ? 5 : 15)); S.hunger = clamp(S.hunger + 5); S.weight = clamp(S.weight + (again ? 0.3 : 2), 5, 99);
+        S.lastSnack = S.age; countAct(S, 'snack', again ? 0.4 : 1);
+        return { ok: true, key: again ? 'snackAgain' : 'snack', anim: 'munch' };
+      }
+      case 'play':
+        if (S.sick) return { ok: false, key: 'sickNoPlay' };
+        if (S.energy < 10) return { ok: false, key: 'tooTired' };
+        return { ok: true, key: 'startPlay' };
+      case 'sleep':
+        if (S.asleep) { S.asleep = false; S.happy = clamp(S.happy - 8); return { ok: true, key: 'wakeForced', anim: 'shiver' }; }
+        S.asleep = true; return { ok: true, key: 'sleep' };
+      case 'clean':
+        if (!S.poop) return { ok: false, key: 'cleanNone' };
+        S.poop = 0; return { ok: true, key: 'clean', anim: 'wiggle' };
+      case 'medicine':
+        if (!S.sick) return { ok: false, key: 'medicineNone' };
+        S.sick = false; S.happy = clamp(S.happy - 8); return { ok: true, key: 'medicine', anim: 'shiver' };
+    }
+    return { ok: false };
+  }
+  function playResult(S, wins) {
+    S.happy = clamp(S.happy + (wins >= 3 ? 28 : 14)); S.energy = clamp(S.energy - 10);
+    S.hunger = clamp(S.hunger - 5); S.weight = clamp(S.weight - 1, 5, 99); countAct(S, 'play', 1); S.careLeft = CARE_REAL;
+    return wins >= 3 ? 'playWin' : 'playLose';
+  }
+
+  // ===== セーブデータの検証・移行 =====
+  function childOfAdult(id) { for (const k of Object.keys(TREE)) if (TREE[k].includes(id)) return k; return 'puchi'; }
+  function sanitize(o, nowMs) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    const now = num(nowMs, Date.now());
+    const S = fresh(o.name, o.gen, o.speed);
+    S.age = clamp(num(o.age, 0), 0, LIFE);
+    S.last = num(o.last, now); if (S.last > now) S.last = now;
+    S.hunger = clamp(num(o.hunger, 80)); S.happy = clamp(num(o.happy, 80)); S.energy = clamp(num(o.energy, 100));
+    S.poop = Math.floor(clamp(num(o.poop, 0), 0, 4));
+    S.weight = clamp(num(o.weight, 10), 5, 99);
+    S.sick = o.sick === true; S.asleep = o.asleep === true; S.departed = o.departed === true;
+    S.title = typeof o.title === 'string' ? o.title.slice(0, 20) : null;
+    S.lastSnack = num(o.lastSnack, -9999);
+    // お世話の評価の残り時間（現実の秒）。前のバージョン(ゲーム内時刻 lastCare)からも変換する
+    if (typeof o.careLeft === 'number') S.careLeft = clamp(num(o.careLeft, 0), 0, CARE_REAL);
+    else if (typeof o.lastCare === 'number') S.careLeft = clamp(CARE_REAL - (S.age - o.lastCare), 0, CARE_REAL);
+    if (o.lastAct && typeof o.lastAct === 'object') ['feed', 'snack', 'play'].forEach(k => { S.lastAct[k] = num(o.lastAct[k], -1e9); });
+    S.style = STYLES.includes(o.style) ? o.style : null;
+    S.awayGrew = o.awayGrew === true;
+    S.wasAway = o.wasAway === true;
+    S.grace = num(o.grace, 0);
+    if (o.prevSt && typeof o.prevSt === 'object') S.prevSt = { feed: Math.max(0, num(o.prevSt.feed, 0)), snack: Math.max(0, num(o.prevSt.snack, 0)), play: Math.max(0, num(o.prevSt.play, 0)) };
+    S.adultX = num(o.adultX, num(o.adultScore, null));
+    S.childForm = stageOfForm(o.childForm) === 'child' ? o.childForm : null;
+    S.form = FORMS[o.form] ? o.form : null;
+    S.adultForm = stageOfForm(o.adultForm) === 'adult' ? o.adultForm : null;
+    const st = (o.st && typeof o.st === 'object') ? o.st : null;
+    const cnt = v => Math.max(0, num(v, 0));
+    if (st && 'wq' in st) {
+      S.st = { t: Math.max(0, num(st.t, 0)), wq: Math.max(0, num(st.wq, 0)), q: Math.max(0, num(st.q, 0)), neg: Math.max(0, num(st.neg, 0)),
+               feed: cnt(st.feed), snack: cnt(st.snack), play: cnt(st.play), sleepT: Math.max(0, num(st.sleepT, 0)), on: Math.max(0, num(st.on, 0)),
+               hs: Math.max(0, num(st.hs, 0)), ht: Math.max(0, num(st.ht, 0)), w0: num(st.w0, S.weight) };
+      if (S.st.hs > 100 * S.st.ht + 1) { S.st.hs = 0; S.st.ht = 0; }
+    } else if (st) {   // 前のバージョン(v2)の記録を変換
+      const t = Math.max(0, num(st.t, 0));
+      S.st = Object.assign(newSt(S.weight), { t, wq: t, q: Math.max(0, num(st.sum, 70 * t)), neg: Math.max(0, num(st.miss, 0)),
+               feed: cnt(st.feed), snack: cnt(st.snack), play: cnt(st.play), on: t });
+    }
+    if (S.st.q > 100 * S.st.wq + 1) S.st.q = 70 * S.st.wq;
+    if (!S.departed && S.age >= LIFE) S.age = LIFE - 60;
+    const sg = S.departed ? 'senior' : stageAt(S.age).id;
+    if (sg === 'egg') { S.form = null; S.childForm = null; }
+    else if (sg === 'baby') S.form = 'baby';
+    else if (sg === 'child') { if (stageOfForm(S.form) !== 'child') S.form = S.childForm || 'puchi'; S.childForm = S.form; }
+    else if (sg === 'adult') {
+      if (stageOfForm(S.form) !== 'adult') S.form = TREE[S.childForm || 'puchi'][0];
+      if (!S.childForm) S.childForm = childOfAdult(S.form);
+    } else {
+      if (stageOfForm(S.form) === 'adult' && !S.adultForm) S.adultForm = S.form;
+      if (stageOfForm(S.form) !== 'senior') S.form = SENIOR_OF[S.form] || 'wata';
+      if (!S.adultForm) S.adultForm = Object.keys(SENIOR_OF).find(k => SENIOR_OF[k] === S.form) || 'fuwa';
+      if (!S.style) S.style = 'balanced';
+    }
+    if (sg === 'adult' && !S.adultForm) S.adultForm = S.form;
+    if (S.departed && !S.title) S.title = 'おだやかな';
+    return S;
+  }
+  // 最初のバージョン(v1)のセーブを引き継ぐ
+  function migrateV1(o, nowMs) {
+    if (!o || typeof o !== 'object') return null;
+    const age = num(o.age, 0);
+    const x = Object.assign({}, o, { st: null, childForm: null });
+    const sg = stageAt(age).id;
+    if (sg === 'child') x.form = 'maru';
+    else if (sg !== 'egg' && sg !== 'baby') {
+      x.form = o.form === 'gutara' ? 'gutara' : 'fuwa';
+      x.childForm = x.form === 'fuwa' ? 'maru' : 'shobon';
+      if (age >= STAGES[3].until) x.age = STAGES[3].until - 5;   // おとなのまま引き継いで、もうすぐご長寿に
+      x.adultScore = 65;
+    }
+    return sanitize(x, nowMs);
+  }
+  function sanitizeZukan(z) {
+    const out = { seen: {}, history: [] };
+    if (!z || typeof z !== 'object') return out;
+    if (z.seen && typeof z.seen === 'object') ORDER.forEach(id => { if (z.seen[id] === true) out.seen[id] = true; });
+    if (Array.isArray(z.history)) {
+      out.history = z.history.filter(h => h && typeof h === 'object' && FORMS[h.form]).slice(0, 30).map(h => ({
+        gen: Math.max(1, Math.floor(num(h.gen, 1))), name: cleanName(h.name), form: h.form,
+        adult: stageOfForm(h.adult) === 'adult' ? h.adult : (Object.keys(SENIOR_OF).find(k => SENIOR_OF[k] === h.form) || null),
+        title: typeof h.title === 'string' ? h.title.slice(0, 20) : '', date: typeof h.date === 'string' ? h.date.slice(0, 20) : '',
+      }));
+    }
+    return out;
+  }
+
+  return { STAGES, LIFE, RATE, OFFLINE, SPEEDS, TH, CARE_REAL, DEDUPE, FORMS, ORDER, SENIOR_OF, SENIOR_PATHS, TREE,
+           stageAt, fresh, advance, act, playResult, sanitize, migrateV1, sanitizeZukan, cleanVal, cleanName,
+           _internal: { stageScore, traits, decideChild, decideAdult, decideSenior, careIndex, gauss } };
+})();
+if (typeof window !== 'undefined') window.MochiEngine = MochiEngine;
+</script>
+
+<!-- ============================================================
+     画面・セリフ・絵
+     ============================================================ -->
+<script>
+(() => {
+  const E = MochiEngine;
+  const KEY = 'mochikko-save-v2';      // 保存場所は前と同じ（中身は v3 形式）
+  const OLD_KEY = 'mochikko-save-v1';
+  const ZKEY = 'mochikko-zukan-v1';
+  const AWAY_SEC = 10;                 // これ以上間があいたら「留守だった」とみなす
+  const FORMS = E.FORMS, ORDER = E.ORDER;
+  const SPEED_LABEL = { 1: '×1', 20: '×20', 100: '×100' };
+  const $ = id => document.getElementById(id);
+
+  let S = null, Z = { seen: {}, history: [] };
+
+  // ===== セリフ =====
+  const GENERIC = {
+    greetShort: ['おかえり！', 'あっ、きた！', 'まってたよ〜'],
+    greetLong: ['おかえり！ずっとまってたんだよ', 'あいたかった〜！', 'きてくれてうれしい！'],
+    feed: ['もぐもぐ…おいしい！', 'ごはんだ〜！', 'ぱくぱく！しあわせ', 'おいしいね！'],
+    full: ['もうおなかいっぱい！', 'もうたべられないよ〜', 'おなかぱんぱん…', 'あとでたべるね'],
+    snack: ['あま〜い♪', 'おやつだいすき！', 'とろけちゃう…'],
+    snackAgain: ['さっきもたべたよ？…たべるけど', 'おやつばっかり、いいのかな？', 'もぐ…（ちょっとおなかいっぱい）', 'うれしいけど、ほどほどにね', 'またおやつ？えへへ'],
+    playWin: ['たのしかった！', 'またあそぼうね！', 'もういっかいやりたい！'],
+    playLose: ['くやし〜い！', 'つぎはまけないよ', 'あそんでくれてありがと'],
+    sleep: ['おやすみ…', 'すやぁ…', 'いいゆめみるね'],
+    wakeForced: ['まだねむかったのに…', 'むにゃ…なあに？'],
+    wake: ['ふぁ〜、よくねた！', 'おはよう！', 'すっきりめがさめた！'],
+    clean: ['すっきり！', 'ありがと〜', 'ぴかぴか！'],
+    cleanNone: ['もうきれいだよ！', 'ぴかぴかだよ〜', 'おそうじ、まだだいじょうぶ'],
+    medicine: ['にがい…でもげんきになった！', 'ありがとう、らくになった', 'おくすりのおかげで、げんきいっぱい！'],
+    medicineNone: ['げんきだからいらないよ〜', 'おくすり、にがいからいいよ…', 'ぴんぴんしてるよ！'],
+    sleepingNow: ['いまはねてるよ…', '（すやすや…）', '（むにゃむにゃ…）', '（ぐっすり…）'],
+    tooTired: ['つかれてて、あそべない…', 'ちょっとやすみたいな', 'ねむくて、めがしょぼしょぼ…'],
+    sickNoPlay: ['ぐあいがわるくてあそべない…', 'げんきになったらあそぼうね…'],
+    fellAsleep: ['……（ねむってしまった）'],
+    gotSick: ['なんだか、ぐあいがわるい…', 'う〜ん…ちょっとしんどい…'],
+    cured: ['げんきになった！ありがとう！', 'すっかりよくなったよ！'],
+    poop: ['あっ…うんちしちゃった', 'でちゃった…'],
+  };
+  // キャラクターごとの性格セリフ
+  const VOICE = {
+    baby:    { idle: ['ばぶ…', 'きゃっきゃっ', '（じーっとみてる）'], evolve: 'うまれたよ！よろしくね' },
+    maru:    { idle: ['いっしょにいるとうれしいな', 'ころころ〜', 'なでなでして？'], evolve: 'まるもちになったよ！' },
+    puchi:   { idle: ['ちいさくてもげんきだよ', 'なにしてあそぶ？', 'ぴょこっ'], evolve: 'ぷちもちになったよ！' },
+    shobon:  { idle: ['…かまってくれる？', 'ひとりはちょっとさみしいな', 'きょうはいてくれる？'], evolve: 'しょんぼりもちに…なったよ' },
+    fuwa:    { idle: ['ふわぁ…いいてんき', 'みんななかよくね', 'やさしくしてくれてありがと'], evolve: 'ふわもちになったよ！ふわふわ〜' },
+    kira:    { idle: ['キラッ☆', 'きょうもかがやいてるよ', 'いっしょにいるとひかっちゃう'], evolve: 'きらもちになったよ！キラキラ〜✨' },
+    ama:     { idle: ['あまいにおいがする…', 'おやつのじかん、まだ？', 'とろ〜ん'], evolve: 'あまもちになったよ！あま〜い' },
+    genki:   { idle: ['はしりたい！', 'いっしょにうごこうよ！', 'げんきいっぱい！'], evolve: 'げんきもちになったよ！よーし！' },
+    nonbiri: { idle: ['のんびり…', 'おはな、きれいだね', 'あわてなくていいよ'], evolve: 'のんびりもちになったよ…ふぁ' },
+    manmaru: { idle: ['つぎのごはん、なにかな', 'まるいって、しあわせ', 'おなかがなった…'], evolve: 'まんまるもちになったよ！' },
+    gutara:  { idle: ['ごろごろ…', 'あとでやる…', 'ねてるのがいちばん'], evolve: 'ぐうたらもちになった…ごろり' },
+    itazura: { idle: ['しっしっし…', 'なにかしかけちゃおっかな', 'かまってくれないと、いたずらするぞ'], evolve: 'いたずらもちになったぞ！しっしっし' },
+    wata:    { idle: ['ほっほっほ', 'むかしはのう…', 'ゆっくりでいいんじゃよ'], evolve: 'わたもちになったよ。ながい時間、ありがとうのう' },
+    hoshi:   { idle: ['みんなをみまもっておるよ', 'ほしがきれいじゃな', 'おまえさんもかがやいとる'], evolve: 'ほしもちになったよ。いつもそばで見守っておるぞ' },
+    kinako:  { idle: ['きなこの香りがするじゃろ', 'あまいものは心のくすりじゃ', 'ほっこりじゃ'], evolve: 'きなこもちになったよ。あまい日々をありがとうのう' },
+    tatsujin:{ idle: ['からだがいちばんのたからじゃ', 'いち、に、いち、に', 'まだまだわかいもんには負けん'], evolve: 'たつじんもちになったよ。いっしょに鍛えた日々、わすれんぞ' },
+    hinata:  { idle: ['おちゃがおいしいのう', 'ひなたはええのう', 'ずず…（おちゃ）'], evolve: 'ひなたもちになったよ。のんびりつきあってくれて、ありがとう' },
+    kagami:  { idle: ['えんぎがええじゃろ', 'みかんがじまんじゃ', 'どっしり、どっしり'], evolve: 'かがみもちになったよ。おいしいごはん、ありがとうのう' },
+    nekoro:  { idle: ['まくら、さいこう…', 'ごろり…', 'ねるこはそだつ…じゃ'], evolve: 'ねころもちになったよ。…ずっとそばにいてくれたのう' },
+    choiwaru:{ idle: ['…ふっ', 'わるいようには、せんよ', 'サングラスの下は、やさしい目じゃ'], evolve: 'ちょいワルもちになったよ。…あそんでくれて、ありがとな' },
+  };
+  // ご長寿が、おとな時代を思い出すセリフ
+  const MEMORY = {
+    fuwa:    ['わかいころは、ふわふわしとったのう', 'ふわもちだったころを思い出すのう'],
+    kira:    ['むかしはキラキラしとったんじゃよ', 'きらもちだったころは、まぶしかったのう'],
+    ama:     ['あまもちのころは、おやつばかりじゃった', 'むかしから、あまいものに目がなくてのう'],
+    genki:   ['わかいころは、走りまわっとったわい', 'げんきもちのころの足は、まだおぼえとる'],
+    nonbiri: ['むかしから、のんびりやでのう', 'のんびりもちのころの、お花ばたけがなつかしい'],
+    manmaru: ['まんまるだったころが、なつかしいのう', 'むかしは、もっとまるかったんじゃ'],
+    gutara:  ['むかしは、ごろごろしてばかりじゃった', 'ぐうたらもちのころも、わるくなかったのう'],
+    itazura: ['わかいころは、いたずらばかりしとったわい', 'いたずらもちのころは、よくしかられたのう'],
+  };
+  // 育てられ方によって少し変わる、ご長寿のセリフ
+  const STYLE_LINES = {
+    play:     ['いっしょにあそんだ日々は、たからものじゃ', 'またあそんでくれるかのう'],
+    sweet:    ['おやつ、たくさんもらったのう', 'あまいものは、いまもすきじゃよ'],
+    rest:     ['よくねかせてもらったおかげで、ながいきじゃ', 'ひるねは、いのちのせんたくじゃ'],
+    heavy:    ['ごはん、いつもおいしかったのう', 'たくさん食べさせてもらったのう'],
+    cared:    ['いつも大事にしてくれて、ありがとうのう', 'おまえさんに育ててもらえて、しあわせじゃ'],
+    balanced: ['いろんなことをしてくれたのう', 'ふつうの毎日が、いちばんじゃな'],
+  };
+  const recent = [];
+  function pickLine(cat) {
+    const v = S && S.form && VOICE[S.form];
+    let pool = (cat === 'idle' && v) ? v.idle : (GENERIC[cat] || []);
+    if (cat === 'idle' && S && FORMS[S.form] && FORMS[S.form].st === 'senior') {
+      const r = Math.random();
+      if (r < 0.3 && MEMORY[S.adultForm]) pool = MEMORY[S.adultForm];
+      else if (r < 0.5 && STYLE_LINES[S.style]) pool = STYLE_LINES[S.style];
+    }
+    if (!pool.length) return '';
+    const fresh = pool.filter(t => !recent.includes(t));
+    const t = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length || pool.length))];
+    recent.push(t); if (recent.length > 8) recent.shift();
+    return t;
+  }
+
+  // ===== ふきだし =====
+  // 優先度：HIGH=進化・病気・回復・おかえり・図鑑登録 / CARE=お世話への反応 / LOW=ひとりごと・ちいさな出来事
+  // ・HIGH は速度にかかわらず必ず表示（3秒）。表示中の低いセリフは早めに切り上げる。
+  // ・20倍速：LOW は他に何も出ていないときだけ。古い CARE/LOW は新しいものに置き換える。
+  // ・100倍速：LOW は出さない。CARE も最新のものだけ。
+  // ・古くなったセリフ、進化前のキャラのセリフ、状況が変わったセリフは表示しない。
+  const P = { LOW: 1, CARE: 2, HIGH: 3 };
+  const TTL = { 1: 4000, 2: 6000, 3: 60000 };       // 待ち行列で待てる最大時間（現実時間）
+  const DUR = { 1: 3000, 2: 2500, 3: 3000 };        // 表示時間（現実時間）
+  const CAT_PRI = { greetShort: 3, greetLong: 3, gotSick: 3, medicine: 3, cured: 3, idle: 1, wake: 1, fellAsleep: 1, poop: 1 };
+  const CAT_VALID = {
+    poop: () => S.poop > 0, gotSick: () => S.sick, fellAsleep: () => S.asleep, wake: () => !S.asleep,
+    sleepingNow: () => S.asleep, sleep: () => S.asleep, tooTired: () => S.energy < 20, idle: () => !S.asleep && !S.sick,
+  };
+  const queue = []; let cur = null, lastChat = Date.now();
+  const shownAt = {};   // 同じセリフを10秒以内にくり返さない
+  function say(text, opt) {
+    if (!text || !S) return;
+    opt = opt || {};
+    const pri = opt.pri || P.CARE, now = Date.now(), spd = S.speed || 1;
+    if (pri === P.LOW && spd >= 100) return;
+    if (pri === P.LOW && spd >= 20 && (cur || queue.length)) return;
+    if ((cur && cur.text === text) || queue.some(q => q.text === text)) return;
+    if (shownAt[text] && now - shownAt[text] < 10000) return;
+    if (spd >= 20 && pri < P.HIGH) {   // 高速中は、待っている古い低優先セリフを新しいものに置き換える
+      for (let i = queue.length - 1; i >= 0; i--) if (queue[i].pri <= pri) queue.splice(i, 1);
+    }
+    const m = { text, pri, born: now, form: S.form, valid: opt.valid || null, dur: opt.dur || DUR[pri] };
+    let i = queue.findIndex(q => q.pri < pri); if (i < 0) i = queue.length;
+    queue.splice(i, 0, m);
+    while (queue.length > 4) queue.pop();                          // 優先度順なので、末尾（いちばん低い）から捨てる
+    if (cur && pri > cur.pri) cur.until = Math.min(cur.until, now + 500);
+    renderBubble();
+  }
+  const sayLine = (cat, opt) => say(pickLine(cat), Object.assign({ pri: CAT_PRI[cat] || P.CARE, valid: CAT_VALID[cat] }, opt || {}));
+  function stillValid(m, now) {
+    if (now - m.born > TTL[m.pri]) return false;
+    if (m.pri < P.HIGH && m.form !== S.form) return false;
+    if (m.valid && !m.valid()) return false;
+    return true;
+  }
+  function pump() {
+    const now = Date.now();
+    if (cur && now < cur.until && (cur.pri === P.HIGH || (cur.form === S.form && (!cur.valid || cur.valid())))) return;
+    cur = null;
+    while (queue.length) {
+      const n = queue.shift();
+      if (stillValid(n, now)) { cur = n; cur.until = now + n.dur; shownAt[n.text] = now; break; }
+    }
+  }
+  // 進化したら、前のキャラクターのセリフを片づける
+  function purgeForEvolve() {
+    for (let i = queue.length - 1; i >= 0; i--) if (queue[i].pri < P.HIGH) queue.splice(i, 1);
+    if (cur && cur.pri < P.HIGH) cur = null;
+  }
+  // 速度を変えたら、ひとりごとと古いお世話の反応を片づける
+  function purgeForSpeed() {
+    const now = Date.now();
+    for (let i = queue.length - 1; i >= 0; i--) if (queue[i].pri === P.LOW || (queue[i].pri === P.CARE && now - queue[i].born > 2000)) queue.splice(i, 1);
+    if (cur && cur.pri === P.LOW) cur = null;
+  }
+  function needMsg() {
+    const st = E.stageAt(S.age).id;
+    if (S.departed) return '';
+    if (st === 'egg') return 'たまごがすこしうごいた…';
+    if (S.sick) return 'ぐあいがわるい…（くすりがほしい）';
+    if (S.asleep) return 'すやすや…';
+    if (S.hunger < 25) return 'おなかすいた〜';
+    if (S.poop > 0) return 'うんちしちゃった…';
+    if (S.energy < 20) return 'ねむい…（でんきをけしてほしいな）';
+    if (S.happy < 25) return 'あそんでほしいな';
+    return '';
+  }
+  function renderBubble() {
+    pump();
+    const b = $('bubble');
+    b.textContent = cur ? cur.text : needMsg();
+    b.classList.toggle('important', !!cur && cur.pri === P.HIGH);
+  }
+
+  function mood() {
+    if (S.sick) return 'sick';
+    if (S.asleep) return 'sleep';
+    if (Math.min(S.hunger, S.happy) < 20) return 'sad';
+    if ((S.hunger + S.happy) / 2 > 70) return 'happy';
+    return 'normal';
+  }
+
+  // ===== 絵（オリジナルキャラクター） =====
+  const wrap = inner => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+  const INK = '#3a302c';
+  function face(cx, cy, m, gap, o) {
+    let s = '';
+    const lx = cx - gap, rx = cx + gap;
+    if (m === 'sleep' || (m === 'normal' && o.sleepy)) {
+      s += `<path d="M${lx-7} ${cy} q7 5 14 0 M${rx-7} ${cy} q7 5 14 0" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    } else if (m === 'happy') {
+      s += `<path d="M${lx-7} ${cy+3} q7 -10 14 0 M${rx-7} ${cy+3} q7 -10 14 0" stroke="${INK}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    } else if (m === 'sick') {
+      s += `<path d="M${lx-5} ${cy-5} l10 10 M${lx+5} ${cy-5} l-10 10 M${rx-5} ${cy-5} l10 10 M${rx+5} ${cy-5} l-10 10" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+    } else {
+      const r = m === 'sad' ? 5 : 7;
+      s += `<circle cx="${lx}" cy="${cy}" r="${r}" fill="${INK}"/><circle cx="${rx}" cy="${cy}" r="${r}" fill="${INK}"/>`;
+      s += `<circle cx="${lx+2}" cy="${cy-2.5}" r="2.2" fill="#fff"/><circle cx="${rx+2}" cy="${cy-2.5}" r="2.2" fill="#fff"/>`;
+      if (o.droopy) s += `<path d="M${lx-9} ${cy-6} h18 M${rx-9} ${cy-6} h18" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+      if (m === 'sad') s += `<path d="M${rx+7} ${cy+4} q3 7 0 10 q-3 -3 0 -10z" fill="#7fb8ff"/>`;
+    }
+    const cr = o.bigCheek ? [12, 8] : [8, 5];
+    s += `<ellipse cx="${lx-12}" cy="${cy+12}" rx="${cr[0]}" ry="${cr[1]}" fill="#ff9fb3" opacity="0.6"/><ellipse cx="${rx+12}" cy="${cy+12}" rx="${cr[0]}" ry="${cr[1]}" fill="#ff9fb3" opacity="0.6"/>`;
+    const my = cy + 16;
+    if (m === 'happy') s += `<path d="M${cx-8} ${my-2} q8 10 16 0" fill="#ff7a8a" stroke="${INK}" stroke-width="2.5"/>`;
+    else if (m === 'sad' || m === 'sick') s += `<path d="M${cx-7} ${my+4} q7 -7 14 0" stroke="${INK}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    else if (m === 'sleep') s += `<ellipse cx="${cx}" cy="${my}" rx="3" ry="2.5" fill="${INK}"/>`;
+    else s += `<path d="M${cx-6} ${my} q6 5 12 0" stroke="${INK}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    if (o.fang && m !== 'sleep') s += `<path d="M${cx+2} ${my+2} l3 6 l3 -5z" fill="#fff" stroke="${INK}" stroke-width="1.2"/>`;
+    return s;
+  }
+  const sparkle = (x, y, r, col) => `<path d="M${x} ${y-r} L${x+r*0.3} ${y-r*0.3} L${x+r} ${y} L${x+r*0.3} ${y+r*0.3} L${x} ${y+r} L${x-r*0.3} ${y+r*0.3} L${x-r} ${y} L${x-r*0.3} ${y-r*0.3}Z" fill="${col}"/>`;
+  function star(x, y, r) {
+    let d = '';
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; d += (i ? 'L' : 'M') + (x + rr * Math.cos(a)).toFixed(1) + ' ' + (y + rr * Math.sin(a)).toFixed(1); }
+    return `<path d="${d}Z" fill="#ffd36b" stroke="#e0b040" stroke-width="2.5" stroke-linejoin="round"/>`;
+  }
+  const BACK = new Set(['ears', 'droopEars', 'tail', 'pillow', 'horns']);
+  const ACC = {
+    ears: g => [-1, 1].map(d => `<circle cx="${g.cx + d * g.rx * 0.62}" cy="${g.top + 14}" r="14" fill="${g.c}" stroke="${g.s}" stroke-width="4"/>`).join(''),
+    droopEars: g => [-1, 1].map(d => { const x = g.cx + d * g.rx * 0.8, y = g.top + 26; return `<ellipse cx="${x}" cy="${y}" rx="10" ry="20" transform="rotate(${-d * 35} ${x} ${y})" fill="${g.c}" stroke="${g.s}" stroke-width="4"/>`; }).join(''),
+    ahoge: g => `<path d="M100 ${g.top + 2} q-4 -20 12 -24" stroke="${g.s}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    sprout: g => `<path d="M100 ${g.top + 2} q-4 -22 -24 -26 q4 22 24 26z" fill="#8fd19e" stroke="#5fa872" stroke-width="3"/><path d="M100 ${g.top + 2} q6 -18 24 -18 q-6 18 -24 18z" fill="#a8dcb3" stroke="#5fa872" stroke-width="3"/>`,
+    arms: g => `<path d="M${g.cx - g.rx + 4} ${g.cy + 10} q-14 4 -10 16 M${g.cx + g.rx - 4} ${g.cy + 10} q14 4 10 16" stroke="${g.s}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    star: g => star(100, g.top - 10, 15),
+    sparkles: g => sparkle(g.cx - g.rx - 4, g.top + 22, 7, '#ffd36b') + sparkle(g.cx + g.rx + 2, g.top + 44, 5, '#ffd36b'),
+    cherry: g => `<path d="M${g.cx + 6} ${g.top - 12} q4 -10 12 -12" stroke="#5fa872" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="${g.cx + 4}" cy="${g.top - 4}" r="9" fill="#e2445c"/><circle cx="${g.cx + 1}" cy="${g.top - 7}" r="2.5" fill="#fff" opacity="0.7"/>`,
+    sprinkles: g => [[-0.5, -0.5, '#7cc6f0', 20], [0.45, -0.55, '#ffd36b', -30], [-0.7, 0.15, '#8fd19e', 50], [0.62, 0.1, '#ff8fab', -10], [0.15, -0.72, '#b99cf0', 70]]
+      .map(([px, py, col, rot]) => { const x = g.cx + g.rx * px, y = g.cy + g.ry * py; return `<rect x="${x - 5}" y="${y - 2}" width="10" height="4" rx="2" fill="${col}" transform="rotate(${rot} ${x} ${y})"/>`; }).join(''),
+    headband: g => `<path d="M${g.cx - g.rx * 0.92} ${g.top + g.ry * 0.42} Q${g.cx} ${g.top + g.ry * 0.02} ${g.cx + g.rx * 0.92} ${g.top + g.ry * 0.42}" stroke="#e2445c" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M${g.cx + g.rx * 0.88} ${g.top + g.ry * 0.4} l18 -8 M${g.cx + g.rx * 0.88} ${g.top + g.ry * 0.42} l16 10" stroke="#e2445c" stroke-width="6" stroke-linecap="round"/>`,
+    headbandWhite: g => { const d = `M${g.cx - g.rx * 0.92} ${g.top + g.ry * 0.42} Q${g.cx} ${g.top + g.ry * 0.02} ${g.cx + g.rx * 0.92} ${g.top + g.ry * 0.42}`;
+      return `<path d="${d}" stroke="#cdbfb4" stroke-width="13" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#ffffff" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="${g.cx}" cy="${g.top + g.ry * 0.22}" r="5" fill="#e2445c"/>`; },
+    flower: g => { const x = g.cx + g.rx * 0.45, y = g.top + g.ry * 0.12; let s = '';
+      for (let i = 0; i < 5; i++) { const a = i * 2 * Math.PI / 5; s += `<circle cx="${(x + 6 * Math.cos(a)).toFixed(1)}" cy="${(y + 6 * Math.sin(a)).toFixed(1)}" r="5" fill="#ffb3c7"/>`; }
+      return s + `<circle cx="${x}" cy="${y}" r="4" fill="#ffd36b"/>`; },
+    horns: g => [-1, 1].map(d => { const x = g.cx + d * g.rx * 0.42, y = g.top + g.ry * 0.18; return `<path d="M${x - 8} ${y} L${x + d * 4} ${y - 22} L${x + 8} ${y}Z" fill="#8a70d8" stroke="${g.s}" stroke-width="3" stroke-linejoin="round"/>`; }).join(''),
+    tail: g => { const x = g.cx + g.rx - 6, y = g.cy + g.ry * 0.45; return `<path d="M${x} ${y} q24 4 20 -20" stroke="${g.s}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M${x + 20} ${y - 20} l-9 -2 l10 -10 l3 12z" fill="#8a70d8"/>`; },
+    brows: g => { const d = `M${g.cx - g.gap - 10} ${g.fy - 14} q10 -6 20 0 M${g.cx + g.gap - 10} ${g.fy - 14} q10 -6 20 0`;
+      return `<path d="${d}" stroke="#c8c0b8" stroke-width="8" fill="none" stroke-linecap="round"/><path d="${d}" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round"/>`; },
+    beard: g => `<path d="M${g.cx - 30} ${g.fy + 22} q4 30 30 40 q26 -10 30 -40 q-14 8 -30 6 q-16 2 -30 -6z" fill="#f1f1f1" stroke="#b8b8b8" stroke-width="3" stroke-linejoin="round"/><path d="M${g.cx - 12} ${g.fy + 36} q4 10 0 18 M${g.cx + 12} ${g.fy + 36} q-4 10 0 18" stroke="#cfcfcf" stroke-width="2" fill="none"/>`,
+    halo: g => `<ellipse cx="${g.cx}" cy="${g.top - 12}" rx="30" ry="8" fill="none" stroke="#f0c850" stroke-width="5"/>`,
+    kinakoDots: g => [[-0.5, -0.4], [0.4, -0.55], [-0.65, 0.25], [0.6, 0.2], [0.1, -0.75], [-0.2, 0.55], [0.35, 0.5]]
+      .map(([px, py]) => `<circle cx="${(g.cx + g.rx * px).toFixed(1)}" cy="${(g.cy + g.ry * py).toFixed(1)}" r="2.5" fill="#b8894a" opacity="0.7"/>`).join(''),
+    mustache: g => `<path d="M${g.cx} ${g.fy + 11} q-10 -6 -22 5 q12 3 22 -1 q10 4 22 1 q-12 -11 -22 -5z" fill="#fff" stroke="#cfcfcf" stroke-width="2"/>`,
+    glasses: g => `<circle cx="${g.cx - g.gap}" cy="${g.fy}" r="12" fill="none" stroke="#6b5a50" stroke-width="3"/><circle cx="${g.cx + g.gap}" cy="${g.fy}" r="12" fill="none" stroke="#6b5a50" stroke-width="3"/><path d="M${g.cx - g.gap + 12} ${g.fy} H${g.cx + g.gap - 12}" stroke="#6b5a50" stroke-width="3"/>`,
+    tea: g => { const x = g.cx - g.rx - 16, y = g.cy + g.ry - 24;
+      return `<path d="M${x} ${y} h22 v12 q0 8 -11 8 q-11 0 -11 -8z" fill="#fff" stroke="#8a7a70" stroke-width="2.5"/><path d="M${x + 22} ${y + 3} q8 0 8 6 q0 6 -8 5" stroke="#8a7a70" stroke-width="2.5" fill="none"/><path d="M${x + 7} ${y - 4} q-3 -6 0 -10 M${x + 14} ${y - 4} q-3 -6 0 -10" stroke="#c9bdb3" stroke-width="2" fill="none" stroke-linecap="round"/>`; },
+    pillow: g => `<rect x="${g.cx - g.rx + 2}" y="${g.top - 10}" width="56" height="36" rx="14" fill="#bfe0ff" stroke="#8fb8e0" stroke-width="3"/>`,
+    sunglasses: g => `<rect x="${g.cx - g.gap - 13}" y="${g.fy - 8}" width="26" height="16" rx="6" fill="#2b2b3a"/><rect x="${g.cx + g.gap - 13}" y="${g.fy - 8}" width="26" height="16" rx="6" fill="#2b2b3a"/><path d="M${g.cx - g.gap + 13} ${g.fy - 3} H${g.cx + g.gap - 13}" stroke="#2b2b3a" stroke-width="3"/><path d="M${g.cx - g.gap - 7} ${g.fy - 3} l6 -2" stroke="#fff" stroke-width="2" opacity="0.6"/>`,
+    cane: g => `<path d="M${g.cx + g.rx + 12} ${g.cy + g.ry - 2} V${g.cy - 6} q0 -14 -12 -14" stroke="#8a5a3a" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    orange: g => `<circle cx="100" cy="${g.top - 8}" r="16" fill="#ff9a3c" stroke="#e07a20" stroke-width="3"/><path d="M100 ${g.top - 24} q8 -8 16 -2 q-8 6 -16 2z" fill="#6fbf73"/>`,
+  };
+  function moodExtra(m) {
+    if (m === 'sleep') return `<text x="152" y="62" font-size="22" fill="#6a7bd0" font-weight="bold">Z</text><text x="170" y="42" font-size="16" fill="#6a7bd0" font-weight="bold">z</text>`;
+    if (m === 'sick') return `<path d="M30 60 q6 -8 12 0 t12 0" stroke="#7fb8ff" stroke-width="3" fill="none"/><path d="M146 52 q6 -8 12 0 t12 0" stroke="#7fb8ff" stroke-width="3" fill="none"/>`;
+    if (m === 'happy') return sparkle(168, 74, 10, '#ffd36b');
+    return '';
+  }
+  function eggSVG() {
+    return wrap(`<ellipse cx="100" cy="118" rx="52" ry="66" fill="#fff4d6" stroke="#e8cf9c" stroke-width="4"/>
+      <circle cx="80" cy="98" r="9" fill="#ffc9a8"/><circle cx="118" cy="128" r="12" fill="#ffc9a8"/><circle cx="95" cy="153" r="7" fill="#ffc9a8"/>`);
+  }
+  function drawForm(id, m) {
+    const F = FORMS[id] || FORMS.baby, sh = F.sh, tint = m === 'sick' ? '#cfe3ef' : F.c;
+    let body, g;
+    if (sh.stack) {
+      body = `<ellipse cx="100" cy="156" rx="80" ry="32" fill="${tint}" stroke="${F.s}" stroke-width="4"/><ellipse cx="100" cy="110" rx="60" ry="36" fill="${tint}" stroke="${F.s}" stroke-width="4"/>`;
+      g = { cx: 100, cy: 110, rx: 60, ry: 36, top: 74, fy: 104, gap: 20 };
+    } else {
+      body = `<ellipse cx="100" cy="${sh.cy}" rx="${sh.rx}" ry="${sh.ry}" fill="${tint}" stroke="${F.s}" stroke-width="4"/><ellipse cx="100" cy="${sh.cy + sh.ry * 0.5}" rx="${sh.rx * 0.45}" ry="${sh.ry * 0.22}" fill="#fff" opacity="0.45"/>`;
+      g = { cx: 100, cy: sh.cy, rx: sh.rx, ry: sh.ry, top: sh.cy - sh.ry, fy: sh.cy - sh.ry * 0.12, gap: Math.min(sh.rx * 0.34, 26) };
+    }
+    g.c = tint; g.s = F.s;
+    let back = '', front = '';
+    (F.acc || []).forEach(a => { const s = ACC[a](g); if (BACK.has(a)) back += s; else front += s; });
+    return wrap(back + body + face(100, g.fy, m, g.gap, F.f || {}) + front + moodExtra(m));
+  }
+  const POOP = `<svg width="30" height="28" viewBox="0 0 30 28"><path d="M15 3 q4 3 1 6 q7 0 6 6 q6 1 5 7 q0 4 -6 4 h-12 q-6 0 -6 -4 q-1 -6 5 -7 q-1 -6 6 -6 q-2 -3 1 -6z" fill="#a8774f" stroke="#7d5536" stroke-width="1.5"/><circle cx="12" cy="18" r="1.3" fill="#3a2a1f"/><circle cx="18" cy="18" r="1.3" fill="#3a2a1f"/></svg>`;
+
+  // ===== 保存・読み込み =====
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem(ZKEY, JSON.stringify(Z)); } catch (e) {}
+  }
+  function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    if (raw) { try { const s = E.sanitize(JSON.parse(raw)); if (s) return s; } catch (e) {} }
+    try { const r1 = localStorage.getItem(OLD_KEY); if (r1) { const s = E.migrateV1(JSON.parse(r1)); if (s) return s; } } catch (e) {}
+    return null;
+  }
+  function loadZukan() {
+    try { const r = localStorage.getItem(ZKEY); if (r) return E.sanitizeZukan(JSON.parse(r)); } catch (e) {}
+    return { seen: {}, history: [] };
+  }
+  function discover(id) { if (id && FORMS[id] && !Z.seen[id]) { Z.seen[id] = true; return true; } return false; }
+
+  // ===== 画面 =====
+  let lastSvgKey = '', animUntil = 0;
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    return m < 60 ? `${m}分` : `${Math.floor(m / 60)}時間${m % 60}分`;
+  }
+  function setAnim(cls, ms) {
+    const w = $('petWrap');
+    w.className = ''; void w.offsetWidth;   // アニメを最初から再生
+    w.className = cls; animUntil = Date.now() + (ms || 1000);
+  }
+  function glow() { const g = $('glow'); g.classList.remove('on'); void g.offsetWidth; g.classList.add('on'); }
+  function render() {
+    const st = E.stageAt(S.age);
+    $('petName').textContent = S.name;
+    $('genLbl').textContent = `${S.gen}代目`;
+    $('stageLbl').textContent = st.id === 'egg' ? 'たまご' : (S.form && FORMS[S.form]) ? `${S.departed ? 'ご長寿' : st.name}（${FORMS[S.form].name}）` : st.name;
+    $('ageLbl').textContent = `うまれて${fmtTime(S.age)}`;
+    $('weightLbl').textContent = `${Math.round(S.weight)}g`;
+    [['Hunger', S.hunger], ['Happy', S.happy], ['Energy', S.energy], ['Clean', E.cleanVal(S)]].forEach(([k, v]) => {
+      $('b' + k).style.width = Math.round(v) + '%'; $('v' + k).textContent = Math.round(v);
+    });
+    $('bLife').style.width = Math.min(100, S.age / E.LIFE * 100) + '%';
+    $('lifeLbl').textContent = S.departed ? 'たびだちました' : `あと${fmtTime(Math.max(0, E.LIFE - S.age))}（ゲーム内時間）`;
+    const m = mood();
+    const key = st.id === 'egg' ? 'egg' : (S.form || 'baby') + ':' + m;
+    const w = $('petWrap');
+    if (key !== lastSvgKey) { w.innerHTML = st.id === 'egg' ? eggSVG() : drawForm(S.form || 'baby', m); lastSvgKey = key; }
+    if (Date.now() >= animUntil) {
+      const senior = FORMS[S.form] && FORMS[S.form].st === 'senior';
+      const base = st.id === 'egg' ? 'wobble' : (S.asleep || S.sick) ? 'still' : S.energy < 20 ? 'sway' : senior ? 'elder' : 'bob';
+      if (w.className !== base) w.className = base;
+    }
+    $('room').classList.toggle('night', S.asleep);
+    $('poops').innerHTML = POOP.repeat(S.poop);
+    $('sleepLbl').textContent = S.asleep ? 'おこす' : 'でんき';
+    const lock = st.id === 'egg' || S.departed;
+    document.querySelectorAll('.actions button').forEach(b => b.disabled = lock);
+    $('speedBtn').textContent = '⏩ 時間 ' + (SPEED_LABEL[S.speed] || '×1');
+    renderBubble();
+  }
+
+  // ===== 時間の進行 =====
+  let awayStart = null, awayEvents = [];
+  const isOpen = id => !$(id).classList.contains('hidden');
+  const paused = () => isOpen('nameModal') || isOpen('gameModal') || isOpen('travelModal');
+  function tick() {
+    const now = Date.now();
+    let el = (now - S.last) / 1000;
+    S.last = now;
+    if (!isFinite(el) || el < 0) el = 0;          // 時計が戻った場合など
+    if (paused() || S.departed) return;            // ミニゲーム中などは時間を止める
+    if (el > AWAY_SEC || document.hidden) {
+      // 留守中：倍速は使わず現実の時間で、上限24時間まで、やさしいルールで進める
+      if (awayStart == null) awayStart = now - el * 1000;
+      const evs = E.advance(S, Math.min(el, E.OFFLINE.cap), { offline: true, memory: memo() });
+      awayEvents.push(...evs.filter(e => e.type === 'evolve'));
+    } else {
+      if (awayStart != null) {   // 戻ってきた
+        const away = (now - awayStart) / 1000;
+        if (away >= 30 * 60) welcomeBack(away, awayEvents); else handleEvents(awayEvents);
+        awayStart = null; awayEvents = [];
+      }
+      // プレイ中：ゲーム内は「現実の時間 × 速度」進む。お世話の評価時間は現実の時間（el）で減る
+      handleEvents(E.advance(S, el * S.speed, { offline: false, real: el, memory: memo() }));
+    }
+    // ときどき性格の出るひとりごと（1倍速 40秒ごと / 20倍速 90秒ごと / 100倍速 なし）
+    const chatGap = S.speed >= 100 ? Infinity : S.speed >= 20 ? 90000 : 40000;
+    if (!cur && !queue.length && !needMsg() && !S.asleep && E.stageAt(S.age).id !== 'egg' && Date.now() - lastChat > chatGap) {
+      sayLine('idle'); lastChat = Date.now();
+      if (FORMS[S.form] && FORMS[S.form].st === 'senior') setAnim('nod', 1300);   // ご長寿は、うんうんとうなずく
+    }
+    save(); render();
+  }
+  const memo = () => ({ pairs: Z.history.slice(0, 10).map(h => ({ adult: h.adult, form: h.form })), seen: Z.seen });
+  function handleEvents(evs) {
+    for (const e of evs) {
+      if (e.type === 'evolve') {
+        lastSvgKey = '';
+        const isNew = discover(e.to);
+        if (e.offline) continue;   // 留守中の成長は「おかえり」でまとめて伝える
+        purgeForEvolve();
+        const v = VOICE[e.to];
+        say(v ? v.evolve : '', { pri: P.HIGH });
+        if (e.stage === 'senior') {
+          glow(); setAnim('hop', 1000);
+          if (FORMS[S.adultForm]) say(`むかしは${FORMS[S.adultForm].name}だったんじゃよ`, { pri: P.HIGH });
+        } else setAnim('hop', 1000);
+        if (isNew) say(`ずかんに「${FORMS[e.to].name}」がとうろくされた！`, { pri: P.HIGH });
+      } else if (e.type === 'depart') {
+        Z.history.unshift({ gen: S.gen, name: S.name, form: S.form, adult: S.adultForm, title: e.title, date: new Date().toLocaleDateString('ja-JP') });
+        Z.history = Z.history.slice(0, 30);
+        save(); showTravel();
+      } else if (!e.offline) {
+        if (e.type === 'wake') sayLine('wake');
+        else if (e.type === 'fellAsleep') sayLine('fellAsleep');
+        else if (e.type === 'sick') { sayLine('gotSick'); setAnim('shiver', 1200); }
+        else if (e.type === 'poop' && Math.random() < 0.5) sayLine('poop');
+        // ※ 100倍速では wake/fellAsleep/poop（LOW）は say() 側で省略される
+      }
+    }
+  }
+  function welcomeBack(el, evs) {
+    handleEvents(evs);
+    if (evs.some(e => e.type === 'evolve')) purgeForEvolve();
+    sayLine(el >= 3 * 3600 ? 'greetLong' : 'greetShort');
+    setAnim('hop', 1000);
+    const grown = evs.filter(e => e.type === 'evolve' && FORMS[e.to] && FORMS[e.to].st !== 'baby').map(e => FORMS[e.to].name);
+    if (grown.length) say(`るすのあいだに${grown[grown.length - 1]}になったよ！`, { pri: P.HIGH });
+  }
+
+  // ===== お世話 =====
+  function act(a) {
+    const r = E.act(S, a);
+    if (r.key === 'startPlay') { startGame(); return; }
+    if (r.key) sayLine(r.key);
+    if (r.anim) setAnim(r.anim, 1200);
+    if (r.ok && r.key === 'sleep') lastChat = Date.now();
+    save(); render();
+  }
+
+  // ===== ミニゲーム（遊んでいる間は時間が止まる） =====
+  let round = 0, wins = 0, busy = false;
+  function startGame() {
+    round = 0; wins = 0; busy = false;
+    $('gameMsg').textContent = 'あてたらよろこぶよ（5かい）';
+    $('gameScore').textContent = '0 / 5';
+    $('gameModal').classList.remove('hidden');
+  }
+  document.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => {
+    if (busy) return; busy = true;
+    const pick = Math.random() < 0.5 ? 'L' : 'R', hit = pick === b.dataset.dir;
+    if (hit) wins++; round++;
+    $('gameMsg').textContent = (pick === 'L' ? '← ひだりをむいた！' : '→ みぎをむいた！') + (hit ? ' あたり！' : ' はずれ…');
+    $('gameScore').textContent = `${wins} / ${round}`;
+    setTimeout(() => {
+      busy = false;
+      if (round >= 5) {
+        $('gameModal').classList.add('hidden');
+        S.last = Date.now();
+        const key = E.playResult(S, wins);
+        say(`${wins}かいあたり！`, { pri: P.CARE, dur: 2000 }); sayLine(key);
+        setAnim('hop', 1000); save(); render();
+      }
+    }, 700);
+  }));
+
+  // ===== ずかん（名前などは textContent で安全に表示） =====
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function openZukan() {
+    const seenCount = ORDER.filter(id => Z.seen[id]).length;
+    $('zCount').textContent = `${seenCount} / ${ORDER.length}`;
+    const body = $('zBody'); body.textContent = '';
+    [['baby', 'あかちゃん'], ['child', 'こども'], ['adult', 'おとな'], ['senior', 'ご長寿']].forEach(([st, label]) => {
+      body.appendChild(el('div', 'zstage', label));
+      const grid = el('div', 'zgrid');
+      ORDER.filter(id => FORMS[id].st === st).forEach(id => {
+        const seen = !!Z.seen[id];
+        const c = el('div', seen ? 'zcell' : 'zcell unknown');
+        if (seen) { c.innerHTML = drawForm(id, 'normal'); c.appendChild(el('span', null, FORMS[id].name)); }
+        else c.textContent = '？';
+        c.addEventListener('click', () => {
+          grid.parentNode.querySelectorAll('.zcell').forEach(x => x.classList.remove('sel'));
+          c.classList.add('sel');
+          const d = $('zDetail'); d.textContent = '';
+          const F = FORMS[id];
+          d.appendChild(el('b', null, seen ? F.name : '？？？')); d.appendChild(document.createElement('br'));
+          if (seen) { d.appendChild(document.createTextNode(F.desc)); d.appendChild(document.createElement('br')); }
+          d.appendChild(el('span', 'sub', (seen ? '育て方：' : 'ヒント：') + F.hint));
+        });
+        grid.appendChild(c);
+      });
+      body.appendChild(grid);
+    });
+    $('zDetail').textContent = 'マスをタップするとくわしく見られます';
+    const h = $('zHist'); h.textContent = '';
+    if (Z.history.length) {
+      h.appendChild(el('b', null, 'たびだった子たち'));
+      Z.history.slice(0, 10).forEach(x => {
+        h.appendChild(document.createElement('br'));
+        h.appendChild(document.createTextNode(`${x.gen}代目 ${x.name}（${x.title}${FORMS[x.form] ? FORMS[x.form].name : ''}）${x.date}`));
+      });
+    }
+    $('zukanModal').classList.remove('hidden');
+  }
+  $('zukanBtn').addEventListener('click', openZukan);
+  $('zClose').addEventListener('click', () => $('zukanModal').classList.add('hidden'));
+
+  // ===== たびだち =====
+  function showTravel() {
+    $('travelPet').innerHTML = drawForm(S.form || 'wata', 'happy');
+    const p = $('travelMsg'); p.textContent = '';
+    p.appendChild(document.createTextNode(`${S.title || ''}${FORMS[S.form] ? FORMS[S.form].name : ''}の`));
+    p.appendChild(el('b', null, S.name));
+    p.appendChild(document.createTextNode('は、'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('たびに出ていきました。'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode(`いっしょにすごした時間：${fmtTime(S.age)}`));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(el('span', null, `ずかん ${ORDER.filter(id => Z.seen[id]).length} / ${ORDER.length}`));
+    $('travelModal').classList.remove('hidden');
+    render();
+  }
+  $('travelOk').addEventListener('click', () => { $('travelModal').classList.add('hidden'); askName(S.gen + 1); });
+
+  // ===== なまえ・リセット・速さ =====
+  let pendingGen = 1;
+  function askName(gen) {
+    pendingGen = gen || 1;
+    $('nameTitle').textContent = pendingGen > 1 ? `${pendingGen}代目のたまごがとどいた！` : 'たまごを見つけた！';
+    $('nameModal').classList.remove('hidden');
+  }
+  $('nameOk').addEventListener('click', () => {
+    S = E.fresh($('nameInput').value, pendingGen, S ? S.speed : 1);
+    $('nameModal').classList.add('hidden');
+    lastSvgKey = ''; queue.length = 0; cur = null;
+    save(); render(); say('たまごがあったかい…', { pri: P.CARE });
+  });
+  $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('nameOk').click(); });
+  $('resetBtn').addEventListener('click', () => $('confirmModal').classList.remove('hidden'));
+  $('confirmNo').addEventListener('click', () => $('confirmModal').classList.add('hidden'));
+  $('confirmYes').addEventListener('click', () => { $('confirmModal').classList.add('hidden'); askName(S ? S.gen : 1); });
+  $('speedBtn').addEventListener('click', () => {
+    tick();
+    const i = E.SPEEDS.indexOf(S.speed);
+    S.speed = E.SPEEDS[(i + 1) % E.SPEEDS.length];
+    purgeForSpeed();
+    save(); render();
+  });
+  document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => act(b.dataset.act)));
+
+  // ===== 起動 =====
+  Z = loadZukan();
+  const loaded = loadState();
+  if (loaded) {
+    S = loaded;
+    if (E.stageAt(S.age).id !== 'egg') { discover('baby'); discover(S.childForm); discover(S.form); }
+    if (S.departed) { render(); showTravel(); }
+    else { tick(); setTimeout(tick, 300); if (!cur && !queue.length && awayStart == null) say(`${S.name}がまってたよ！`, { pri: P.CARE }); }
+    save();
+  } else {
+    S = E.fresh('もちっこ', 1, 1); render(); askName(1);
+  }
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else tick(); });
+  window.addEventListener('pagehide', save);
+})();
+</script>
+</body>
+</html>
